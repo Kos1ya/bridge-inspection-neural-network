@@ -1,0 +1,50 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# Подготовка данных
+train_datagen = ImageDataGenerator(rescale=1./255, # Нормализация
+                                   rotation_range=20, # Аугментация данных
+                                   width_shift_range=0.2,
+                                   height_shift_range=0.2,
+                                   shear_range=0.2,
+                                   zoom_range=0.2,
+                                   horizontal_flip=True,
+                                   fill_mode='nearest')
+
+train_generator = train_datagen.flow_from_directory('path_to_train_data',
+                                                    target_size=(150, 150),
+                                                    batch_size=32,
+                                                    class_mode='categorical')
+
+validation_generator = train_datagen.flow_from_directory('path_to_validation_data',
+                                                         target_size=(150, 150),
+                                                         batch_size=32,
+                                                         class_mode='categorical')
+
+# Построение модели
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(150, 150, 3)),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(128, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(512, activation='relu'),
+    layers.Dense(3, activation='softmax') # 3 класса (К, Б, М)
+])
+
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Обучение модели
+history = model.fit(train_generator,
+                    steps_per_epoch=100,
+                    epochs=30,
+                    validation_data=validation_generator,
+                    validation_steps=50)
+
+# Сохранение модели
+model.save('bridge_supports_classifier.h5')
